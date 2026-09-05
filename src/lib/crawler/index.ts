@@ -9,6 +9,7 @@ import { contentHash, sha256, titleHash } from "@/lib/utils/hash";
 import { normalizeUrl } from "@/lib/utils/url";
 import { matchesRoute } from "@/lib/services/routes";
 import { enqueuePublishTask } from "@/lib/queue/queues";
+import { enrichArticleFromDetailPage } from "./detail";
 
 export function adapterFor(type: SourceType): CrawlerAdapter {
   if (type === "RSS") return new RSSAdapter();
@@ -72,27 +73,28 @@ export async function crawlSource(source: Source) {
 }
 
 export async function upsertArticle(source: Source, item: NormalizedArticle) {
-  const url = normalizeUrl(item.url, source.baseUrl);
-  const canonicalUrl = item.canonicalUrl ? normalizeUrl(item.canonicalUrl, source.baseUrl) : url;
+  const enriched = source.type === "WEBHOOK" ? item : await enrichArticleFromDetailPage(item, source);
+  const url = normalizeUrl(enriched.url, source.baseUrl);
+  const canonicalUrl = enriched.canonicalUrl ? normalizeUrl(enriched.canonicalUrl, source.baseUrl) : url;
   const urlHash = sha256(canonicalUrl || url);
   const data = {
     sourceId: source.id,
-    externalId: item.externalId,
-    title: item.title,
+    externalId: enriched.externalId,
+    title: enriched.title,
     url,
     canonicalUrl,
     urlHash,
-    titleHash: titleHash(item.title, item.publishedAt),
-    contentHash: contentHash(item.content),
-    excerpt: item.excerpt,
-    content: item.content,
-    coverUrl: item.coverUrl,
-    author: item.author,
-    category: item.category,
-    tags: item.tags || [],
-    publishedAt: item.publishedAt,
-    rawData: item.rawData as object,
-    contentExtraction: item.contentExtraction,
+    titleHash: titleHash(enriched.title, enriched.publishedAt),
+    contentHash: contentHash(enriched.content),
+    excerpt: enriched.excerpt,
+    content: enriched.content,
+    coverUrl: enriched.coverUrl,
+    author: enriched.author,
+    category: enriched.category,
+    tags: enriched.tags || [],
+    publishedAt: enriched.publishedAt,
+    rawData: enriched.rawData as object,
+    contentExtraction: enriched.contentExtraction,
     status: "NEW" as const
   };
 
@@ -100,7 +102,7 @@ export async function upsertArticle(source: Source, item: NormalizedArticle) {
     where: {
       OR: [
         { urlHash },
-        item.externalId ? { sourceId: source.id, externalId: item.externalId } : undefined,
+        enriched.externalId ? { sourceId: source.id, externalId: enriched.externalId } : undefined,
         { canonicalUrl }
       ].filter(Boolean) as never
     }
