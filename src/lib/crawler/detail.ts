@@ -125,6 +125,26 @@ function collectListJsonLdCovers($: cheerio.CheerioAPI, articleUrl: string, sour
   return covers;
 }
 
+function articleIdFromPath(input: string) {
+  return input.match(/\/archives\/([^/]+)/)?.[1];
+}
+
+function collectLoadBannerCovers(html: string, articleUrl: string) {
+  const articleId = articleIdFromPath(articleUrl);
+  if (!articleId) return [];
+
+  const covers: string[] = [];
+  const pattern = new RegExp(
+    String.raw`loadBannerDirect\(\s*['"]([^'"]+)['"][\s\S]{0,300}?post-card-${articleId}\b`,
+    "g"
+  );
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(html))) {
+    covers.push(match[1]);
+  }
+  return covers;
+}
+
 function collectImageCandidates($: cheerio.CheerioAPI, source: Source) {
   const selectors = [
     ".article-content img",
@@ -190,7 +210,10 @@ export async function enrichArticleFromListPage(article: NormalizedArticle, sour
     });
     const $ = cheerio.load(data);
     const articleUrl = comparableArticleUrl(article.url, source.baseUrl);
-    const covers: string[] = collectListJsonLdCovers($, articleUrl, source);
+    const covers: string[] = [
+      ...collectLoadBannerCovers(data, articleUrl),
+      ...collectListJsonLdCovers($, articleUrl, source)
+    ];
 
     $("a[href]").each((_, element) => {
       const link = $(element);

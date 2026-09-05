@@ -23,6 +23,14 @@ function contentTypeFor(ext: string) {
   return `image/${ext}`;
 }
 
+function sniffImageExtension(value: Buffer) {
+  if (value.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]))) return "jpeg";
+  if (value.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return "png";
+  if (value.subarray(0, 4).toString("ascii") === "RIFF" && value.subarray(8, 12).toString("ascii") === "WEBP") return "webp";
+  if (value.subarray(0, 6).toString("ascii").startsWith("GIF")) return "gif";
+  return undefined;
+}
+
 function stripNullPadding(value: Buffer) {
   let end = value.length;
   while (end > 0 && value[end - 1] === 0) end -= 1;
@@ -60,10 +68,11 @@ export async function downloadCoverToLocal(originalUrl?: string | null) {
 
   const sourceExt = extensionFromUrl(originalUrl) || "jpeg";
   const contentType = response.headers.get("content-type") || "";
-  const image = contentType.startsWith("image/") ? body : decryptEncryptedImage(body);
+  const sniffedExt = sniffImageExtension(body);
+  const image = contentType.startsWith("image/") || sniffedExt ? body : decryptEncryptedImage(body);
   if (!image.length) return undefined;
 
-  const ext = sourceExt === "jpg" ? "jpeg" : sourceExt;
+  const ext = sniffedExt || (sourceExt === "jpg" ? "jpeg" : sourceExt);
   const filename = `${crypto.createHash("sha256").update(originalUrl).digest("hex").slice(0, 24)}.${ext}`;
   await mkdir(uploadRoot, { recursive: true });
   await writeFile(path.join(uploadRoot, filename), image);
