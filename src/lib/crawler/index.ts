@@ -127,8 +127,8 @@ async function updateMissingArticleFields(articleId: string, enriched: Normalize
   const localizedCovers = await localizeCoverUrls([...(enriched.coverUrls || []), ...(enriched.coverUrl ? [enriched.coverUrl] : [])]);
 
   const data = {
-    coverUrl: existing.coverUrl || localizedCovers[0] || enriched.coverUrl,
-    coverUrls: existing.coverUrls || (localizedCovers.length ? localizedCovers : enriched.coverUrls || (enriched.coverUrl ? [enriched.coverUrl] : undefined)),
+    coverUrl: localizedCovers[0] || existing.coverUrl || enriched.coverUrl,
+    coverUrls: localizedCovers.length ? localizedCovers : existing.coverUrls || enriched.coverUrls || (enriched.coverUrl ? [enriched.coverUrl] : undefined),
     excerpt: existing.excerpt || enriched.excerpt,
     content: existing.content || enriched.content,
     contentHash: existing.contentHash || contentHash(enriched.content),
