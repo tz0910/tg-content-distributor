@@ -1,6 +1,5 @@
 import { NextRequest } from "next/server";
-import { appEnv } from "@/lib/env";
-import { localCoverContentType } from "@/lib/services/cover-store";
+import { coverRequestHeaders, localCoverContentType, localCoverFilePath } from "@/lib/services/cover-store";
 import { isValidImageProxySignature } from "@/lib/utils/image";
 
 export const runtime = "nodejs";
@@ -63,8 +62,7 @@ async function decryptImageResponse(rawUrl: string) {
     const localUrl = await downloadCoverToLocal(rawUrl);
     if (!localUrl) return undefined;
     const { readFile } = await import("node:fs/promises");
-    const path = await import("node:path");
-    return readFile(path.join(process.cwd(), "public", localUrl));
+    return readFile(localCoverFilePath(localUrl));
   } catch {
     return undefined;
   }
@@ -75,11 +73,7 @@ async function fetchImageWithCheckedRedirects(rawUrl: string) {
   for (let index = 0; index < 4; index += 1) {
     const imageUrl = new URL(current);
     const response = await fetch(imageUrl, {
-      headers: {
-        "User-Agent": appEnv.crawlerUserAgent,
-        Referer: imageUrl.origin,
-        Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"
-      },
+      headers: coverRequestHeaders(imageUrl),
       cache: "no-store",
       redirect: "manual"
     });

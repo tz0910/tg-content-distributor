@@ -7,6 +7,8 @@ const uploadRoot = path.join(process.cwd(), "public", "uploads", "covers");
 const publicPrefix = "/uploads/covers";
 const encryptedImageKey = Buffer.from("f5d965df75336270", "utf8");
 const encryptedImageIv = Buffer.from("97b60394abc2fbe1", "utf8");
+const browserUserAgent =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
 
 function extensionFromUrl(input: string) {
   try {
@@ -31,6 +33,22 @@ function sniffImageExtension(value: Buffer) {
   return undefined;
 }
 
+function refererFor(imageUrl: URL) {
+  const host = imageUrl.hostname.toLowerCase();
+  if (host.endsWith("ndhixj.cn") || host.endsWith("eisees.com")) return "https://91heilw.com/";
+  return imageUrl.origin + "/";
+}
+
+export function coverRequestHeaders(imageUrl: URL) {
+  const host = imageUrl.hostname.toLowerCase();
+  return {
+    "User-Agent": host.endsWith("ndhixj.cn") || host.endsWith("eisees.com") ? browserUserAgent : appEnv.crawlerUserAgent || browserUserAgent,
+    Referer: refererFor(imageUrl),
+    Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8"
+  };
+}
+
 function stripNullPadding(value: Buffer) {
   let end = value.length;
   while (end > 0 && value[end - 1] === 0) end -= 1;
@@ -49,34 +67,62 @@ export function isLocalCoverUrl(url?: string | null) {
   return Boolean(url?.startsWith(publicPrefix));
 }
 
-export async function downloadCoverToLocal(originalUrl?: string | null) {
-  if (!originalUrl || isLocalCoverUrl(originalUrl)) return originalUrl || undefined;
+export function localCoverFilePath(url: string) {
+  return path.join(process.cwd(), "public", url.replace(/^\/+/, ""));
+}
+
+export async function inspectCoverDownload(originalUrl?: string | null) {
+  if (!originalUrl) return { ok: false, error: "empty url" };
+  if (isLocalCoverUrl(originalUrl)) return { ok: true, localUrl: originalUrl, alreadyLocal: true };
 
   const imageUrl = new URL(originalUrl);
   const response = await fetch(imageUrl, {
-    headers: {
-      "User-Agent": appEnv.crawlerUserAgent,
-      Referer: imageUrl.origin,
-      Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8"
-    },
+    headers: coverRequestHeaders(imageUrl),
     cache: "no-store"
   });
 
-  if (!response.ok) return undefined;
+  const status = response.status;
+  const contentType = response.headers.get("content-type") || "";
+  if (!response.ok) return { ok: false, status, contentType, error: `http ${status}` };
   const body = Buffer.from(await response.arrayBuffer());
-  if (!body.length) return undefined;
+  const bytes = body.length;
+  const head = body.subarray(0, 12).toString("hex");
+  if (!body.length) return { ok: false, status, contentType, bytes, head, error: "empty response" };
 
   const sourceExt = extensionFromUrl(originalUrl) || "jpeg";
-  const contentType = response.headers.get("content-type") || "";
   const sniffedExt = sniffImageExtension(body);
-  const image = contentType.startsWith("image/") || sniffedExt ? body : decryptEncryptedImage(body);
-  if (!image.length) return undefined;
+  let image = contentType.startsWith("image/") || sniffedExt ? body : Buffer.alloc(0);
+  if (!image.length) {
+    try {
+      image = decryptEncryptedImage(body);
+    } catch (error) {
+      return {
+        ok: false,
+        status,
+        contentType,
+        bytes,
+        head,
+        sniffedExt,
+        error: error instanceof Error ? error.message : "decrypt failed"
+      };
+    }
+  }
 
-  const ext = sniffedExt || (sourceExt === "jpg" ? "jpeg" : sourceExt);
+  const imageSniffedExt = sniffImageExtension(image);
+  if (!image.length || !imageSniffedExt) {
+    return { ok: false, status, contentType, bytes, head, sniffedExt, error: "response is not a supported image" };
+  }
+
+  const ext = imageSniffedExt || sniffedExt || (sourceExt === "jpg" ? "jpeg" : sourceExt);
   const filename = `${crypto.createHash("sha256").update(originalUrl).digest("hex").slice(0, 24)}.${ext}`;
   await mkdir(uploadRoot, { recursive: true });
   await writeFile(path.join(uploadRoot, filename), image);
-  return `${publicPrefix}/${filename}`;
+  return { ok: true, status, contentType, bytes, head, sniffedExt: imageSniffedExt, localUrl: `${publicPrefix}/${filename}` };
+}
+
+export async function downloadCoverToLocal(originalUrl?: string | null) {
+  const result = await inspectCoverDownload(originalUrl);
+  return result.ok ? result.localUrl : undefined;
 }
 
 export async function localizeCoverUrls(urls: string[]) {
