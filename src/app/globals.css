@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 210 24% 98%;
+  --foreground: 218 32% 12%;
+  --muted: 210 18% 92%;
+  --border: 214 18% 84%;
+  --panel: 0 0% 100%;
+  --accent: 189 82% 38%;
+  --success: 158 64% 38%;
+  --danger: 352 72% 50%;
+}
+
+.dark {
+  --background: 220 18% 10%;
+  --foreground: 210 24% 96%;
+  --muted: 218 15% 18%;
+  --border: 218 16% 24%;
+  --panel: 218 18% 14%;
+  --accent: 188 74% 48%;
+  --success: 154 56% 48%;
+  --danger: 352 76% 60%;
+}
+
+body {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+input,
+select,
+textarea {
+  color: hsl(var(--foreground));
+  background: hsl(var(--panel));
+}

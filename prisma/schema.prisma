@@ -1,0 +1,306 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SourceType {
+  RSS
+  SITEMAP
+  HTML
+  API
+  WEBHOOK
+  DYNAMIC_HTML
+}
+
+enum ArticleStatus {
+  NEW
+  PROCESSING
+  FILTERED
+  READY
+  QUEUED
+  PUBLISHED
+  FAILED
+  IGNORED
+}
+
+enum PublishTaskStatus {
+  WAITING
+  PROCESSING
+  SUCCESS
+  FAILED
+  RETRYING
+  CANCELLED
+}
+
+enum LogLevel {
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+}
+
+enum AIAction {
+  OFF
+  TITLE
+  SUMMARY
+  FULL_COPY
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String   @default("Administrator")
+  role         String   @default("admin")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Source {
+  id                 String      @id @default(cuid())
+  name               String
+  type               SourceType
+  baseUrl            String
+  feedUrl            String?
+  sitemapUrl         String?
+  apiUrl             String?
+  listUrl            String?
+  interval           Int         @default(5)
+  enabled            Boolean     @default(true)
+  archived           Boolean     @default(false)
+  webhookSecretHash  String?
+  userAgent          String?
+  respectRobotsTxt   Boolean     @default(true)
+  initialCrawlMode   String      @default("LATEST_20")
+  lastCrawledAt      DateTime?
+  lastSuccessAt      DateTime?
+  recentArticleCount Int         @default(0)
+  recentError        String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  crawlRules         CrawlRule[]
+  articles           Article[]
+  routeRules         RouteRule[]
+  crawlLogs          CrawlLog[]
+}
+
+model CrawlRule {
+  id                      String   @id @default(cuid())
+  sourceId                String
+  articleSelector          String?
+  titleSelector            String?
+  linkSelector             String?
+  imageSelector            String?
+  timeSelector             String?
+  detailTitleSelector      String?
+  detailContentSelector    String?
+  detailCoverSelector      String?
+  detailPublishTimeSelector String?
+  apiResultPath            String?
+  apiFieldMap              Json?
+  apiHeaders               Json?
+  includeKeywords          String[] @default([])
+  excludeKeywords          String[] @default([])
+  regexFilters             String[] @default([])
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  source                   Source   @relation(fields: [sourceId], references: [id])
+}
+
+model Article {
+  id             String        @id @default(cuid())
+  sourceId       String
+  externalId     String?
+  title          String
+  url            String
+  canonicalUrl   String?
+  urlHash        String
+  titleHash      String
+  contentHash    String?
+  excerpt        String?
+  content        String?
+  coverUrl       String?
+  author         String?
+  category       String?
+  tags           Json?
+  tgTitle        String?
+  tgSummary      String?
+  tgTags         Json?
+  publishedAt    DateTime?
+  discoveredAt   DateTime      @default(now())
+  status         ArticleStatus @default(NEW)
+  rawData        Json?
+  contentExtraction String?
+  utmSource      String?
+  utmMedium      String?
+  utmCampaign    String?
+  deletedAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  source         Source        @relation(fields: [sourceId], references: [id])
+  tasks          PublishTask[]
+
+  @@unique([sourceId, externalId])
+  @@unique([urlHash])
+  @@index([status, discoveredAt])
+  @@index([sourceId, discoveredAt])
+}
+
+model TelegramBot {
+  id        String            @id @default(cuid())
+  name      String
+  tokenHash String
+  tokenEnc  String
+  username  String?
+  botApiId  String?
+  enabled   Boolean           @default(true)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  channels  TelegramChannel[]
+}
+
+model TelegramChannel {
+  id                 String        @id @default(cuid())
+  name               String
+  botId              String
+  chatId             String
+  username           String?
+  channelCode        String?
+  enabled            Boolean       @default(true)
+  minIntervalSeconds Int           @default(60)
+  maxPostsPerHour    Int           @default(20)
+  maxPostsPerDay     Int           @default(200)
+  publishStartTime   String        @default("08:00")
+  publishEndTime     String        @default("23:00")
+  timezone           String        @default("Asia/Shanghai")
+  lastPublishedAt    DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  bot                TelegramBot   @relation(fields: [botId], references: [id])
+  routeRules         RouteRule[]
+  tasks              PublishTask[]
+  logs               PublishLog[]
+}
+
+model PublishTemplate {
+  id          String        @id @default(cuid())
+  name        String
+  body        String
+  includeLink Boolean       @default(true)
+  includeTags Boolean       @default(true)
+  includeEmoji Boolean      @default(true)
+  includeSummary Boolean    @default(true)
+  emoji       String        @default("🔥")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  routeRules  RouteRule[]
+  tasks       PublishTask[]
+}
+
+model RouteRule {
+  id               String          @id @default(cuid())
+  name             String
+  sourceId         String?
+  channelId        String
+  templateId       String
+  enabled          Boolean         @default(true)
+  category         String?
+  tag              String?
+  titleKeyword     String?
+  urlKeyword       String?
+  includeKeywords  String[]        @default([])
+  excludeKeywords  String[]        @default([])
+  aiAction         AIAction        @default(OFF)
+  utmSource        String          @default("telegram")
+  utmMedium        String          @default("social")
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  source           Source?         @relation(fields: [sourceId], references: [id])
+  channel          TelegramChannel @relation(fields: [channelId], references: [id])
+  template         PublishTemplate @relation(fields: [templateId], references: [id])
+}
+
+model PublishTask {
+  id               String            @id @default(cuid())
+  articleId        String
+  channelId        String
+  templateId       String
+  status           PublishTaskStatus @default(WAITING)
+  scheduledAt      DateTime          @default(now())
+  attempts         Int               @default(0)
+  republishVersion Int               @default(0)
+  idempotencyKey   String
+  lastError        String?
+  publishedAt      DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  article          Article           @relation(fields: [articleId], references: [id])
+  channel          TelegramChannel   @relation(fields: [channelId], references: [id])
+  template         PublishTemplate   @relation(fields: [templateId], references: [id])
+  logs             PublishLog[]
+
+  @@unique([articleId, channelId, republishVersion])
+  @@unique([idempotencyKey])
+  @@index([status, scheduledAt])
+}
+
+model PublishLog {
+  id                String              @id @default(cuid())
+  taskId            String?
+  articleId         String
+  channelId         String
+  telegramMessageId String?
+  status            PublishTaskStatus
+  response          Json?
+  errorCode         String?
+  errorMessage      String?
+  publishedAt       DateTime?
+  createdAt         DateTime            @default(now())
+  task              PublishTask?        @relation(fields: [taskId], references: [id])
+  channel           TelegramChannel     @relation(fields: [channelId], references: [id])
+}
+
+model CrawlLog {
+  id          String   @id @default(cuid())
+  sourceId    String
+  startedAt   DateTime @default(now())
+  finishedAt  DateTime?
+  durationMs  Int?
+  discovered  Int      @default(0)
+  inserted    Int      @default(0)
+  duplicated  Int      @default(0)
+  failed      Int      @default(0)
+  errorMessage String?
+  source      Source   @relation(fields: [sourceId], references: [id])
+}
+
+model SystemLog {
+  id        String   @id @default(cuid())
+  level     LogLevel
+  scope     String
+  message   String
+  meta      Json?
+  createdAt DateTime @default(now())
+}
+
+model AIConfig {
+  id        String   @id @default(cuid())
+  name      String
+  baseUrl   String
+  apiKeyEnc String?
+  model     String
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Setting {
+  key       String   @id
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

@@ -1,0 +1,53 @@
+{
+  "name": "tg-content-distributor",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
+    "worker": "tsx workers/index.ts",
+    "worker:crawler": "tsx workers/crawler.worker.ts",
+    "worker:telegram": "tsx workers/telegram.worker.ts",
+    "worker:scheduler": "tsx workers/scheduler.worker.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@auth/prisma-adapter": "^2.10.0",
+    "@prisma/client": "^6.15.0",
+    "axios": "^1.11.0",
+    "bcryptjs": "^3.0.2",
+    "bullmq": "^5.58.0",
+    "cheerio": "^1.1.2",
+    "clsx": "^2.1.1",
+    "fast-xml-parser": "^5.2.5",
+    "ioredis": "^5.7.0",
+    "lucide-react": "^0.468.0",
+    "next": "^15.5.2",
+    "next-auth": "5.0.0-beta.29",
+    "rss-parser": "^3.13.0",
+    "tailwind-merge": "^2.6.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.17.2",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.34.0",
+    "eslint-config-next": "^15.5.2",
+    "postcss": "^8.5.6",
+    "prisma": "^6.15.0",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}
