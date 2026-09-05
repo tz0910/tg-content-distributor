@@ -47,7 +47,7 @@ export function nextAllowedPublishTime(channel: {
   return scheduled;
 }
 
-export async function publishTask(taskId: string) {
+export async function publishTask(taskId: string, options?: { ignoreSchedule?: boolean }) {
   const task = await prisma.publishTask.findUnique({
     where: { id: taskId },
     include: {
@@ -59,10 +59,11 @@ export async function publishTask(taskId: string) {
 
   if (!task) throw new Error("发布任务不存在");
   if (task.status === "SUCCESS") return task;
+  if (task.status === "CANCELLED") return task;
 
   const now = new Date();
   const allowedAt = nextAllowedPublishTime(task.channel);
-  if (allowedAt > now) {
+  if (!options?.ignoreSchedule && allowedAt > now) {
     await prisma.publishTask.update({ where: { id: task.id }, data: { scheduledAt: allowedAt, status: "WAITING" } });
     return { delayedUntil: allowedAt };
   }
