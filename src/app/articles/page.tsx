@@ -19,11 +19,19 @@ export default async function ArticlesPage() {
       {articles.length === 0 ? <EmptyState title="暂无文章。添加 RSS 后点击立即采集即可入库。" /> : null}
       <div className="overflow-hidden rounded-lg border border-border bg-panel">
         <table className="w-full text-left text-sm">
-          <thead className="bg-muted text-xs text-slate-500"><tr><th className="p-3">标题</th><th>来源</th><th>分类</th><th>发现时间</th><th>目标频道</th><th>状态</th></tr></thead>
+          <thead className="bg-muted text-xs text-slate-500"><tr><th className="p-3">封面</th><th>标题</th><th>来源</th><th>分类</th><th>发现时间</th><th>目标频道</th><th>状态</th></tr></thead>
           <tbody>
             {articles.map((article) => (
               <tr key={article.id} className="border-t border-border">
-                <td className="max-w-lg p-3"><Link href={`/articles/${article.id}`} className="font-medium hover:underline">{article.title}</Link></td>
+                <td className="p-3">
+                  {article.coverUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={article.coverUrl} alt="" className="h-14 w-20 rounded-md object-cover" />
+                  ) : (
+                    <div className="grid h-14 w-20 place-items-center rounded-md bg-muted text-xs text-slate-500">无封面</div>
+                  )}
+                </td>
+                <td className="max-w-lg"><Link href={`/articles/${article.id}`} className="font-medium hover:underline">{article.title}</Link></td>
                 <td>{article.source.name}</td>
                 <td>{article.category || "-"}</td>
                 <td>{article.discoveredAt.toLocaleString("zh-CN")}</td>
