@@ -3,7 +3,7 @@ import { EmptyState } from "@/components/table";
 import { prisma } from "@/lib/db";
 import { createTemplate } from "./actions";
 
-const defaultBody = '{{emoji}} {{title}}\n\n{{summary}}\n\n<a href="{{url}}">查看完整视频</a>\n\n{{tags}}';
+const defaultBody = "{{emoji}} {{title}}\n\n{{summary}}\n\n{{tags}}\n\n👇 点击下方按钮查看完整视频";
 
 export const dynamic = "force-dynamic";
 

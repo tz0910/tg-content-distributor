@@ -14,6 +14,25 @@ export type TelegramResult = {
   error_code?: number;
 };
 
+type SendOptions = {
+  buttonText?: string;
+  buttonUrl?: string;
+};
+
+function inlineKeyboard(options?: SendOptions) {
+  if (!options?.buttonText || !options.buttonUrl) return undefined;
+  return {
+    inline_keyboard: [
+      [
+        {
+          text: options.buttonText,
+          url: options.buttonUrl
+        }
+      ]
+    ]
+  };
+}
+
 export class TelegramService {
   private client: AxiosInstance;
 
@@ -34,23 +53,25 @@ export class TelegramService {
     return this.getBotInfo();
   }
 
-  async sendMessage(chatId: string, text: string) {
+  async sendMessage(chatId: string, text: string, options?: SendOptions) {
     const { data } = await this.client.post<TelegramResult>("/sendMessage", {
       chat_id: chatId,
       text: fitTelegramText(text),
       parse_mode: "HTML",
-      disable_web_page_preview: false
+      disable_web_page_preview: false,
+      reply_markup: inlineKeyboard(options)
     });
     if (!data.ok) throw new Error(data.description || "Telegram 文本发送失败");
     return data;
   }
 
-  async sendPhoto(chatId: string, photo: string, caption: string) {
+  async sendPhoto(chatId: string, photo: string, caption: string, options?: SendOptions) {
     const { data } = await this.client.post<TelegramResult>("/sendPhoto", {
       chat_id: chatId,
       photo,
       caption: fitTelegramCaption(caption),
-      parse_mode: "HTML"
+      parse_mode: "HTML",
+      reply_markup: inlineKeyboard(options)
     });
     if (!data.ok) throw new Error(data.description || "Telegram 图片发送失败");
     return data;

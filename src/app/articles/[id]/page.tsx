@@ -4,6 +4,7 @@ import { Badge } from "@/components/table";
 import { prisma } from "@/lib/db";
 import { renderTemplate } from "@/lib/services/template";
 import { imageProxyPath } from "@/lib/utils/image";
+import { appendUtm } from "@/lib/utils/url";
 import { ignoreArticle, queueArticle, updateArticleCopy } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,16 @@ export default async function ArticleDetailPage({ params }: { params: Promise<{ 
   });
   if (!article) notFound();
   const template = article.tasks[0]?.template || (await prisma.publishTemplate.findFirst());
-  const preview = template ? renderTemplate(template.body, article, { emoji: template.emoji }) : "";
+  const previewChannel = article.tasks[0]?.channel;
+  const previewUrl = previewChannel
+    ? appendUtm(article.url, {
+        source: "telegram",
+        medium: "social",
+        campaign: previewChannel.channelCode || previewChannel.username || previewChannel.name,
+        content: article.id
+      })
+    : article.url;
+  const preview = template ? renderTemplate(template.body, { ...article, url: previewUrl }, { emoji: template.emoji }) : "";
   const covers = [...new Set([...(Array.isArray(article.coverUrls) ? article.coverUrls.map(String) : []), ...(article.coverUrl ? [article.coverUrl] : [])])].slice(0, 3);
 
   return (
@@ -52,7 +62,18 @@ export default async function ArticleDetailPage({ params }: { params: Promise<{ 
           </form>
           <section className="rounded-lg border border-border bg-panel p-4">
             <h3 className="mb-3 font-semibold">Telegram Preview</h3>
-            <pre className="whitespace-pre-wrap rounded-md bg-muted p-3 text-sm">{preview || "还没有模板"}</pre>
+            <div className="overflow-hidden rounded-md bg-[#e7eef4] text-slate-950">
+              {covers[0] ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={imageProxyPath(covers[0])} alt="" className="h-48 w-full object-cover" />
+              ) : (
+                <div className="grid h-36 place-items-center bg-slate-200 text-sm text-slate-500">暂无封面</div>
+              )}
+              <pre className="whitespace-pre-wrap p-3 text-sm leading-6">{preview || "还没有模板"}</pre>
+              <a href={previewUrl} target="_blank" rel="noreferrer" className="mx-3 mb-3 block rounded-md bg-accent px-3 py-2 text-center text-sm font-medium text-white">
+                🎬 查看完整视频
+              </a>
+            </div>
             <div className="mt-3 flex gap-2">
               <form action={queueArticle}><input type="hidden" name="id" value={article.id} /><button className="rounded-md bg-accent px-3 py-2 text-sm text-white">加入队列</button></form>
               <form action={ignoreArticle}><input type="hidden" name="id" value={article.id} /><button className="rounded-md border border-border px-3 py-2 text-sm">忽略</button></form>

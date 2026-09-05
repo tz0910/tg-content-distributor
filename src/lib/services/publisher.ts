@@ -75,23 +75,25 @@ export async function publishTask(taskId: string) {
   const url = appendUtm(task.article.url, {
     source: "telegram",
     medium: "social",
-    campaign: task.channel.channelCode || task.channel.username || task.channel.name
+    campaign: task.channel.channelCode || task.channel.username || task.channel.name,
+    content: task.article.id
   });
   const articleForTemplate = { ...task.article, url };
   const text = renderTemplate(task.template.body, articleForTemplate, { emoji: task.template.emoji, format: "html" });
   const service = new TelegramService(decodeStoredSecret(task.channel.bot.tokenEnc));
   const coverUrls = Array.isArray(task.article.coverUrls) ? task.article.coverUrls.map(String) : [];
   const coverUrl = coverUrls[0] || task.article.coverUrl;
+  const button = { buttonText: "🎬 查看完整视频", buttonUrl: url };
 
   try {
     let response;
     try {
       response = coverUrl
-        ? await service.sendPhoto(task.channel.chatId, absoluteImageProxyUrl(coverUrl), text)
-        : await service.sendMessage(task.channel.chatId, text);
+        ? await service.sendPhoto(task.channel.chatId, absoluteImageProxyUrl(coverUrl), text, button)
+        : await service.sendMessage(task.channel.chatId, text, button);
     } catch (photoError) {
       if (!coverUrl) throw photoError;
-      response = await service.sendMessage(task.channel.chatId, text);
+      response = await service.sendMessage(task.channel.chatId, text, button);
     }
 
     await prisma.$transaction([
