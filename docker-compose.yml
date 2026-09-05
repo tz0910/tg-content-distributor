@@ -25,6 +25,8 @@ services:
       - redis
     env_file:
       - .env
+    volumes:
+      - uploads-data:/app/public/uploads
     ports:
       - "3000:3000"
     command: sh -c "npx prisma migrate deploy && npm run start"
@@ -36,8 +38,11 @@ services:
       - redis
     env_file:
       - .env
+    volumes:
+      - uploads-data:/app/public/uploads
     command: sh -c "npx prisma migrate deploy && npm run worker"
 
 volumes:
   postgres-data:
   redis-data:
+  uploads-data:

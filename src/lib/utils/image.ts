@@ -7,10 +7,12 @@ function imageSignature(url: string) {
 }
 
 export function imageProxyPath(url: string) {
+  if (url.startsWith("/")) return url;
   return `/api/images/proxy?url=${encodeURIComponent(url)}&sig=${imageSignature(url)}`;
 }
 
 export function absoluteImageProxyUrl(url: string) {
+  if (url.startsWith("/")) return `${appEnv.appUrl.replace(/\/$/, "")}${url}`;
   return `${appEnv.appUrl.replace(/\/$/, "")}${imageProxyPath(url)}`;
 }
 

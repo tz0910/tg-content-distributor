@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { appEnv } from "@/lib/env";
+import { localCoverContentType } from "@/lib/services/cover-store";
 import { isValidImageProxySignature } from "@/lib/utils/image";
 
 export const runtime = "nodejs";
@@ -35,7 +36,14 @@ export async function GET(request: NextRequest) {
   const contentType = response.headers.get("content-type") || "";
   const contentLength = Number(response.headers.get("content-length") || 0);
   if (!contentType.startsWith("image/")) {
-    return new Response("URL is not an image", { status: 415 });
+    const decrypted = await decryptImageResponse(rawUrl);
+    if (!decrypted) return new Response("URL is not an image", { status: 415 });
+    return new Response(decrypted, {
+      headers: {
+        "Content-Type": localCoverContentType(rawUrl),
+        "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400"
+      }
+    });
   }
   if (contentLength > 10 * 1024 * 1024) {
     return new Response("Image too large", { status: 413 });
@@ -47,6 +55,19 @@ export async function GET(request: NextRequest) {
       "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400"
     }
   });
+}
+
+async function decryptImageResponse(rawUrl: string) {
+  try {
+    const { downloadCoverToLocal } = await import("@/lib/services/cover-store");
+    const localUrl = await downloadCoverToLocal(rawUrl);
+    if (!localUrl) return undefined;
+    const { readFile } = await import("node:fs/promises");
+    const path = await import("node:path");
+    return readFile(path.join(process.cwd(), "public", localUrl));
+  } catch {
+    return undefined;
+  }
 }
 
 async function fetchImageWithCheckedRedirects(rawUrl: string) {

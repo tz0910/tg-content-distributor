@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { enrichArticleFromDetailPage, enrichArticleFromListPage } from "@/lib/crawler/detail";
+import { localizeCoverUrls } from "@/lib/services/cover-store";
 import { contentHash } from "@/lib/utils/hash";
 import type { NormalizedArticle } from "@/lib/crawler/types";
 
@@ -34,9 +35,12 @@ async function main() {
         contentExtraction: article.contentExtraction === "SELECTOR" || article.contentExtraction === "FALLBACK" ? article.contentExtraction : undefined
       };
     const enriched = await enrichArticleFromDetailPage(await enrichArticleFromListPage(input, article.source), article.source);
+    const localizedCovers = await localizeCoverUrls([...(enriched.coverUrls || []), ...(enriched.coverUrl ? [enriched.coverUrl] : [])]);
     const next = {
-      coverUrl: force ? enriched.coverUrl || article.coverUrl : enriched.coverUrl || article.coverUrl,
-      coverUrls: force ? enriched.coverUrls || (Array.isArray(article.coverUrls) ? article.coverUrls.map(String) : undefined) : enriched.coverUrls || (Array.isArray(article.coverUrls) ? article.coverUrls.map(String) : undefined),
+      coverUrl: force ? localizedCovers[0] || enriched.coverUrl || article.coverUrl : localizedCovers[0] || enriched.coverUrl || article.coverUrl,
+      coverUrls: force
+        ? localizedCovers.length ? localizedCovers : enriched.coverUrls || (Array.isArray(article.coverUrls) ? article.coverUrls.map(String) : undefined)
+        : localizedCovers.length ? localizedCovers : enriched.coverUrls || (Array.isArray(article.coverUrls) ? article.coverUrls.map(String) : undefined),
       excerpt: article.excerpt || enriched.excerpt,
       content: article.content || enriched.content,
       contentHash: article.contentHash || contentHash(enriched.content),

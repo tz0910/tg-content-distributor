@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { contentHash, sha256, titleHash } from "@/lib/utils/hash";
 import { normalizeUrl } from "@/lib/utils/url";
 import { matchesRoute } from "@/lib/services/routes";
+import { localizeCoverUrls } from "@/lib/services/cover-store";
 import { enqueuePublishTask } from "@/lib/queue/queues";
 import { enrichArticleFromDetailPage, enrichArticleFromListPage } from "./detail";
 
@@ -74,6 +75,7 @@ export async function crawlSource(source: Source) {
 
 export async function upsertArticle(source: Source, item: NormalizedArticle) {
   const enriched = source.type === "WEBHOOK" ? item : await enrichArticleFromDetailPage(await enrichArticleFromListPage(item, source), source);
+  const localizedCovers = await localizeCoverUrls([...(enriched.coverUrls || []), ...(enriched.coverUrl ? [enriched.coverUrl] : [])]);
   const url = normalizeUrl(enriched.url, source.baseUrl);
   const canonicalUrl = enriched.canonicalUrl ? normalizeUrl(enriched.canonicalUrl, source.baseUrl) : url;
   const urlHash = sha256(canonicalUrl || url);
@@ -88,8 +90,8 @@ export async function upsertArticle(source: Source, item: NormalizedArticle) {
     contentHash: contentHash(enriched.content),
     excerpt: enriched.excerpt,
     content: enriched.content,
-    coverUrl: enriched.coverUrl,
-    coverUrls: enriched.coverUrls || (enriched.coverUrl ? [enriched.coverUrl] : []),
+    coverUrl: localizedCovers[0] || enriched.coverUrl,
+    coverUrls: localizedCovers.length ? localizedCovers : enriched.coverUrls || (enriched.coverUrl ? [enriched.coverUrl] : []),
     author: enriched.author,
     category: enriched.category,
     tags: enriched.tags || [],
@@ -122,10 +124,11 @@ export async function upsertArticle(source: Source, item: NormalizedArticle) {
 async function updateMissingArticleFields(articleId: string, enriched: NormalizedArticle) {
   const existing = await prisma.article.findUnique({ where: { id: articleId } });
   if (!existing) throw new Error("文章不存在");
+  const localizedCovers = await localizeCoverUrls([...(enriched.coverUrls || []), ...(enriched.coverUrl ? [enriched.coverUrl] : [])]);
 
   const data = {
-    coverUrl: existing.coverUrl || enriched.coverUrl,
-    coverUrls: existing.coverUrls || enriched.coverUrls || (enriched.coverUrl ? [enriched.coverUrl] : undefined),
+    coverUrl: existing.coverUrl || localizedCovers[0] || enriched.coverUrl,
+    coverUrls: existing.coverUrls || (localizedCovers.length ? localizedCovers : enriched.coverUrls || (enriched.coverUrl ? [enriched.coverUrl] : undefined)),
     excerpt: existing.excerpt || enriched.excerpt,
     content: existing.content || enriched.content,
     contentHash: existing.contentHash || contentHash(enriched.content),
