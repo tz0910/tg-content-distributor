@@ -18,11 +18,13 @@ async function main() {
 
   await prisma.publishTemplate.upsert({
     where: { id: "default-template" },
-    update: {},
+    update: {
+      body: '{{emoji}} {{title}}\n\n{{summary}}\n\n<a href="{{url}}">查看完整视频</a>\n\n{{tags}}'
+    },
     create: {
       id: "default-template",
       name: "默认资讯模板",
-      body: "{{emoji}} {{title}}\n\n{{summary}}\n\n👉 查看完整内容：\n{{url}}\n\n{{tags}}"
+      body: '{{emoji}} {{title}}\n\n{{summary}}\n\n<a href="{{url}}">查看完整视频</a>\n\n{{tags}}'
     }
   });
 }

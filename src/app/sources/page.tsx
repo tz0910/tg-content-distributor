@@ -14,24 +14,53 @@ export default async function SourcesPage() {
 
   return (
     <AppShell>
-      <h2 className="mb-4 text-2xl font-semibold">网站采集源</h2>
-      <form action={createSource} className="mb-6 grid gap-3 rounded-lg border border-border bg-panel p-4 md:grid-cols-4">
-        <input name="name" required placeholder="网站名称" className="rounded-md border border-border px-3 py-2" />
-        <input name="baseUrl" required placeholder="https://example.com" className="rounded-md border border-border px-3 py-2" />
-        <select name="type" className="rounded-md border border-border px-3 py-2">
-          <option value="RSS">RSS</option>
-          <option value="SITEMAP">Sitemap</option>
-          <option value="HTML">HTML</option>
-          <option value="API">API</option>
-          <option value="WEBHOOK">Webhook</option>
-        </select>
-        <input name="interval" type="number" min="1" defaultValue="5" className="rounded-md border border-border px-3 py-2" />
-        <input name="feedUrl" placeholder="RSS URL" className="rounded-md border border-border px-3 py-2" />
-        <input name="sitemapUrl" placeholder="Sitemap URL" className="rounded-md border border-border px-3 py-2" />
-        <input name="apiUrl" placeholder="API URL" className="rounded-md border border-border px-3 py-2" />
-        <input name="listUrl" placeholder="HTML 列表页" className="rounded-md border border-border px-3 py-2" />
-        <label className="flex items-center gap-2 text-sm"><input name="enabled" type="checkbox" defaultChecked /> 启用</label>
-        <button className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white">新增采集源</button>
+      <div className="mb-4">
+        <h2 className="text-2xl font-semibold">帖子采集源</h2>
+        <p className="mt-1 text-sm text-slate-500">优先填 RSS 地址；如果封面在分类页上，再填帖子列表页用于匹配封面。</p>
+      </div>
+      <form action={createSource} className="mb-6 rounded-lg border border-border bg-panel p-4">
+        <div className="grid gap-3 md:grid-cols-4">
+          <label className="grid gap-1 text-sm font-medium">
+            站点名称
+            <input name="name" required placeholder="例如：91 黑料" className="rounded-md border border-border px-3 py-2 font-normal" />
+          </label>
+          <label className="grid gap-1 text-sm font-medium">
+            网站首页
+            <input name="baseUrl" required placeholder="https://91heilw.com/" className="rounded-md border border-border px-3 py-2 font-normal" />
+          </label>
+          <label className="grid gap-1 text-sm font-medium">
+            采集类型
+            <select name="type" className="rounded-md border border-border px-3 py-2 font-normal">
+              <option value="RSS">RSS</option>
+              <option value="SITEMAP">Sitemap</option>
+              <option value="HTML">HTML 列表页</option>
+              <option value="API">API</option>
+              <option value="WEBHOOK">Webhook</option>
+            </select>
+          </label>
+          <label className="grid gap-1 text-sm font-medium">
+            间隔分钟
+            <input name="interval" type="number" min="1" defaultValue="5" className="rounded-md border border-border px-3 py-2 font-normal" />
+          </label>
+          <label className="grid gap-1 text-sm font-medium md:col-span-2">
+            RSS 地址
+            <input name="feedUrl" placeholder="例如：https://example.com/feed" className="rounded-md border border-border px-3 py-2 font-normal" />
+          </label>
+          <label className="grid gap-1 text-sm font-medium md:col-span-2">
+            帖子列表/分类页
+            <input name="listUrl" placeholder="例如：https://91heilw.com/category/jinr-chigua/" className="rounded-md border border-border px-3 py-2 font-normal" />
+          </label>
+          <label className="grid gap-1 text-sm font-medium">
+            Sitemap 地址
+            <input name="sitemapUrl" placeholder="可选" className="rounded-md border border-border px-3 py-2 font-normal" />
+          </label>
+          <label className="grid gap-1 text-sm font-medium">
+            API 地址
+            <input name="apiUrl" placeholder="可选" className="rounded-md border border-border px-3 py-2 font-normal" />
+          </label>
+          <label className="flex items-center gap-2 pt-6 text-sm"><input name="enabled" type="checkbox" defaultChecked /> 启用</label>
+          <button className="self-end rounded-md bg-accent px-4 py-2 text-sm font-medium text-white">新增采集源</button>
+        </div>
       </form>
       {sources.length === 0 ? <EmptyState title="还没有采集源，先添加一个 RSS 或 Sitemap。" /> : null}
       <div className="overflow-hidden rounded-lg border border-border bg-panel">
