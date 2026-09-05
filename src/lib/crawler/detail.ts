@@ -64,7 +64,65 @@ function backgroundImageUrl(value?: string) {
 function isLikelyContentImage(url: string) {
   const lower = url.toLowerCase();
   if (lower.startsWith("data:")) return false;
-  return !["logo", "icon", "avatar", "favicon", "placeholder", "loading", "qrcode", "wechat"].some((token) => lower.includes(token));
+  return !["generic_cover", "logo", "icon", "avatar", "favicon", "placeholder", "loading", "qrcode", "wechat"].some((token) => lower.includes(token));
+}
+
+function comparableArticleUrl(input: string, baseUrl: string) {
+  const url = new URL(normalizeUrl(input, baseUrl));
+  return `${url.hostname.replace(/^www\./, "")}${url.pathname.replace(/\/$/, "")}`;
+}
+
+function safeComparableArticleUrl(input: string, baseUrl: string) {
+  try {
+    return comparableArticleUrl(input, baseUrl);
+  } catch {
+    return undefined;
+  }
+}
+
+function jsonLdImageValues(value: unknown): string[] {
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value)) return value.flatMap(jsonLdImageValues);
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    if (typeof record.url === "string") return [record.url];
+  }
+  return [];
+}
+
+function collectListJsonLdCovers($: cheerio.CheerioAPI, articleUrl: string, source: Source) {
+  const covers: string[] = [];
+  const scripts = $('script[type="application/ld+json"]')
+    .map((_, element) => $(element).text())
+    .get();
+
+  const visit = (value: unknown) => {
+    if (!value || typeof value !== "object") return;
+    if (Array.isArray(value)) {
+      value.forEach(visit);
+      return;
+    }
+
+    const record = value as Record<string, unknown>;
+    const rawUrl = typeof record.url === "string" ? record.url : typeof record["@id"] === "string" ? record["@id"] : undefined;
+    if (rawUrl && safeComparableArticleUrl(rawUrl, source.baseUrl) === articleUrl) {
+      covers.push(...jsonLdImageValues(record.image));
+    }
+
+    for (const child of Object.values(record)) {
+      if (child && typeof child === "object") visit(child);
+    }
+  };
+
+  for (const script of scripts) {
+    try {
+      visit(JSON.parse(script) as unknown);
+    } catch {
+      continue;
+    }
+  }
+
+  return covers;
 }
 
 function collectImageCandidates($: cheerio.CheerioAPI, source: Source) {
@@ -131,14 +189,14 @@ export async function enrichArticleFromListPage(article: NormalizedArticle, sour
       headers: { "User-Agent": source.userAgent || appEnv.crawlerUserAgent }
     });
     const $ = cheerio.load(data);
-    const articleUrl = normalizeUrl(article.url, source.baseUrl).replace(/\/$/, "");
-    const covers: string[] = [];
+    const articleUrl = comparableArticleUrl(article.url, source.baseUrl);
+    const covers: string[] = collectListJsonLdCovers($, articleUrl, source);
 
     $("a[href]").each((_, element) => {
       const link = $(element);
       const href = link.attr("href");
       if (!href) return;
-      const linkedUrl = normalizeUrl(href, source.baseUrl).replace(/\/$/, "");
+      const linkedUrl = safeComparableArticleUrl(href, source.baseUrl);
       if (linkedUrl !== articleUrl) return;
 
       const card = link.parents("article,li,.post,.item,.card,.entry,.post-item,.article-item,div").first();
@@ -172,7 +230,7 @@ export async function enrichArticleFromListPage(article: NormalizedArticle, sour
 }
 
 export async function enrichArticleFromDetailPage(article: NormalizedArticle, source: Source) {
-  if (article.coverUrl && article.coverUrls?.length && article.content && article.excerpt) return article;
+  if (article.coverUrl && isLikelyContentImage(article.coverUrl) && article.coverUrls?.length && article.content && article.excerpt) return article;
 
   try {
     const { data } = await axios.get<string>(article.url, {
