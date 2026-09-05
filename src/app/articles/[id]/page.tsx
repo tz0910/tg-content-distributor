@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { CoverImage } from "@/components/cover-image";
 import { AppShell } from "@/components/shell";
 import { Badge } from "@/components/table";
 import { prisma } from "@/lib/db";
@@ -43,8 +44,7 @@ export default async function ArticleDetailPage({ params }: { params: Promise<{ 
           {covers.length ? (
             <div className="mb-4 grid grid-cols-3 gap-2">
               {covers.map((cover) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img key={cover} src={imageProxyPath(cover)} alt="" className="h-44 w-full rounded-md object-cover" />
+                <CoverImage key={cover} src={imageProxyPath(cover)} className="h-44 w-full rounded-md object-cover" />
               ))}
             </div>
           ) : null}
@@ -64,8 +64,7 @@ export default async function ArticleDetailPage({ params }: { params: Promise<{ 
             <h3 className="mb-3 font-semibold">Telegram Preview</h3>
             <div className="overflow-hidden rounded-md bg-[#e7eef4] text-slate-950">
               {covers[0] ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={imageProxyPath(covers[0])} alt="" className="h-48 w-full object-cover" />
+                <CoverImage src={imageProxyPath(covers[0])} className="h-48 w-full object-cover" />
               ) : (
                 <div className="grid h-36 place-items-center bg-slate-200 text-sm text-slate-500">暂无封面</div>
               )}
