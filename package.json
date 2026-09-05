@@ -12,6 +12,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
+    "backfill:covers": "tsx scripts/backfill-covers.ts",
     "worker": "tsx workers/index.ts",
     "worker:crawler": "tsx workers/crawler.worker.ts",
     "worker:telegram": "tsx workers/telegram.worker.ts",

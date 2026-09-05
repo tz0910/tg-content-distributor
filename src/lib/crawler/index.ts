@@ -108,11 +108,43 @@ export async function upsertArticle(source: Source, item: NormalizedArticle) {
     }
   });
 
-  if (existing) return { inserted: false, article: existing };
+  if (existing) {
+    const article = await updateMissingArticleFields(existing.id, enriched);
+    return { inserted: false, article };
+  }
 
   const article = await prisma.article.create({ data });
   await createPublishTasks(article.id);
   return { inserted: true, article };
+}
+
+async function updateMissingArticleFields(articleId: string, enriched: NormalizedArticle) {
+  const existing = await prisma.article.findUnique({ where: { id: articleId } });
+  if (!existing) throw new Error("文章不存在");
+
+  const data = {
+    coverUrl: existing.coverUrl || enriched.coverUrl,
+    excerpt: existing.excerpt || enriched.excerpt,
+    content: existing.content || enriched.content,
+    contentHash: existing.contentHash || contentHash(enriched.content),
+    contentExtraction: existing.contentExtraction || enriched.contentExtraction,
+    rawData: existing.rawData || (enriched.rawData as object)
+  };
+
+  if (
+    data.coverUrl === existing.coverUrl &&
+    data.excerpt === existing.excerpt &&
+    data.content === existing.content &&
+    data.contentHash === existing.contentHash &&
+    data.contentExtraction === existing.contentExtraction
+  ) {
+    return existing;
+  }
+
+  return prisma.article.update({
+    where: { id: articleId },
+    data
+  });
 }
 
 export async function createPublishTasks(articleId: string) {
