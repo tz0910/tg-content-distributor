@@ -3,6 +3,7 @@ import { AppShell } from "@/components/shell";
 import { Badge } from "@/components/table";
 import { prisma } from "@/lib/db";
 import { renderTemplate } from "@/lib/services/template";
+import { imageProxyPath } from "@/lib/utils/image";
 import { ignoreArticle, queueArticle, updateArticleCopy } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +30,7 @@ export default async function ArticleDetailPage({ params }: { params: Promise<{ 
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
         <section className="rounded-lg border border-border bg-panel p-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {article.coverUrl ? <img src={article.coverUrl} alt="" className="mb-4 max-h-72 w-full rounded-md object-cover" /> : null}
+          {article.coverUrl ? <img src={imageProxyPath(article.coverUrl)} alt="" className="mb-4 max-h-72 w-full rounded-md object-cover" /> : null}
           <h3 className="mb-2 font-semibold">正文</h3>
           <p className="whitespace-pre-line text-sm leading-7 text-slate-700 dark:text-slate-200">{article.content || article.excerpt || "没有正文内容"}</p>
         </section>

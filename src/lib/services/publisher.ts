@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { TelegramService } from "@/lib/telegram/service";
 import { renderTemplate } from "@/lib/services/template";
 import { appendUtm } from "@/lib/utils/url";
+import { absoluteImageProxyUrl } from "@/lib/utils/image";
 
 function decodeStoredSecret(value: string) {
   // First release stores encrypted-ready values as plain env-managed strings.
@@ -84,7 +85,7 @@ export async function publishTask(taskId: string) {
     let response;
     try {
       response = task.article.coverUrl
-        ? await service.sendPhoto(task.channel.chatId, task.article.coverUrl, text)
+        ? await service.sendPhoto(task.channel.chatId, absoluteImageProxyUrl(task.article.coverUrl), text)
         : await service.sendMessage(task.channel.chatId, text);
     } catch (photoError) {
       if (!task.article.coverUrl) throw photoError;

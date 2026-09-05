@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/shell";
 import { Badge, EmptyState } from "@/components/table";
 import { prisma } from "@/lib/db";
+import { imageProxyPath } from "@/lib/utils/image";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ export default async function ArticlesPage() {
                 <td className="p-3">
                   {article.coverUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={article.coverUrl} alt="" className="h-14 w-20 rounded-md object-cover" />
+                    <img src={imageProxyPath(article.coverUrl)} alt="" className="h-14 w-20 rounded-md object-cover" />
                   ) : (
                     <div className="grid h-14 w-20 place-items-center rounded-md bg-muted text-xs text-slate-500">无封面</div>
                   )}
