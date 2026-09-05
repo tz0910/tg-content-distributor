@@ -17,6 +17,7 @@ export default async function ArticleDetailPage({ params }: { params: Promise<{ 
   if (!article) notFound();
   const template = article.tasks[0]?.template || (await prisma.publishTemplate.findFirst());
   const preview = template ? renderTemplate(template.body, article, { emoji: template.emoji }) : "";
+  const covers = [...new Set([...(Array.isArray(article.coverUrls) ? article.coverUrls.map(String) : []), ...(article.coverUrl ? [article.coverUrl] : [])])].slice(0, 3);
 
   return (
     <AppShell>
@@ -29,8 +30,14 @@ export default async function ArticleDetailPage({ params }: { params: Promise<{ 
       </div>
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
         <section className="rounded-lg border border-border bg-panel p-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          {article.coverUrl ? <img src={imageProxyPath(article.coverUrl)} alt="" className="mb-4 max-h-72 w-full rounded-md object-cover" /> : null}
+          {covers.length ? (
+            <div className="mb-4 grid grid-cols-3 gap-2">
+              {covers.map((cover) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img key={cover} src={imageProxyPath(cover)} alt="" className="h-44 w-full rounded-md object-cover" />
+              ))}
+            </div>
+          ) : null}
           <h3 className="mb-2 font-semibold">正文</h3>
           <p className="whitespace-pre-line text-sm leading-7 text-slate-700 dark:text-slate-200">{article.content || article.excerpt || "没有正文内容"}</p>
         </section>

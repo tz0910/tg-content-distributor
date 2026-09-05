@@ -1,10 +1,11 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { enrichArticleFromDetailPage } from "@/lib/crawler/detail";
 import { contentHash } from "@/lib/utils/hash";
 
 async function main() {
   const articles = await prisma.article.findMany({
-    where: { deletedAt: null, OR: [{ coverUrl: null }, { excerpt: null }, { content: null }] },
+    where: { deletedAt: null, OR: [{ coverUrl: null }, { coverUrls: { equals: Prisma.JsonNull } }, { excerpt: null }, { content: null }] },
     include: { source: true },
     take: 200,
     orderBy: { discoveredAt: "desc" }
@@ -21,6 +22,7 @@ async function main() {
         excerpt: article.excerpt || undefined,
         content: article.content || undefined,
         coverUrl: article.coverUrl || undefined,
+        coverUrls: Array.isArray(article.coverUrls) ? article.coverUrls.map(String) : undefined,
         author: article.author || undefined,
         category: article.category || undefined,
         tags: Array.isArray(article.tags) ? article.tags.map(String) : undefined,
@@ -31,7 +33,8 @@ async function main() {
       article.source
     );
     const next = {
-      coverUrl: article.coverUrl || enriched.coverUrl,
+      coverUrl: enriched.coverUrl || article.coverUrl,
+      coverUrls: enriched.coverUrls || (Array.isArray(article.coverUrls) ? article.coverUrls.map(String) : undefined),
       excerpt: article.excerpt || enriched.excerpt,
       content: article.content || enriched.content,
       contentHash: article.contentHash || contentHash(enriched.content),
@@ -40,6 +43,7 @@ async function main() {
 
     if (
       next.coverUrl !== article.coverUrl ||
+      next.coverUrls !== article.coverUrls ||
       next.excerpt !== article.excerpt ||
       next.content !== article.content ||
       next.contentHash !== article.contentHash ||

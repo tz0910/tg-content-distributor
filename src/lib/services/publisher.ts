@@ -80,15 +80,17 @@ export async function publishTask(taskId: string) {
   const articleForTemplate = { ...task.article, url };
   const text = renderTemplate(task.template.body, articleForTemplate, { emoji: task.template.emoji, format: "html" });
   const service = new TelegramService(decodeStoredSecret(task.channel.bot.tokenEnc));
+  const coverUrls = Array.isArray(task.article.coverUrls) ? task.article.coverUrls.map(String) : [];
+  const coverUrl = coverUrls[0] || task.article.coverUrl;
 
   try {
     let response;
     try {
-      response = task.article.coverUrl
-        ? await service.sendPhoto(task.channel.chatId, absoluteImageProxyUrl(task.article.coverUrl), text)
+      response = coverUrl
+        ? await service.sendPhoto(task.channel.chatId, absoluteImageProxyUrl(coverUrl), text)
         : await service.sendMessage(task.channel.chatId, text);
     } catch (photoError) {
-      if (!task.article.coverUrl) throw photoError;
+      if (!coverUrl) throw photoError;
       response = await service.sendMessage(task.channel.chatId, text);
     }
 

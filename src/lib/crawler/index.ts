@@ -89,6 +89,7 @@ export async function upsertArticle(source: Source, item: NormalizedArticle) {
     excerpt: enriched.excerpt,
     content: enriched.content,
     coverUrl: enriched.coverUrl,
+    coverUrls: enriched.coverUrls || (enriched.coverUrl ? [enriched.coverUrl] : []),
     author: enriched.author,
     category: enriched.category,
     tags: enriched.tags || [],
@@ -124,6 +125,7 @@ async function updateMissingArticleFields(articleId: string, enriched: Normalize
 
   const data = {
     coverUrl: existing.coverUrl || enriched.coverUrl,
+    coverUrls: existing.coverUrls || enriched.coverUrls || (enriched.coverUrl ? [enriched.coverUrl] : undefined),
     excerpt: existing.excerpt || enriched.excerpt,
     content: existing.content || enriched.content,
     contentHash: existing.contentHash || contentHash(enriched.content),
@@ -133,6 +135,7 @@ async function updateMissingArticleFields(articleId: string, enriched: Normalize
 
   if (
     data.coverUrl === existing.coverUrl &&
+    data.coverUrls === existing.coverUrls &&
     data.excerpt === existing.excerpt &&
     data.content === existing.content &&
     data.contentHash === existing.contentHash &&

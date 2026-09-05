@@ -8,6 +8,7 @@ export type NormalizedArticle = {
   excerpt?: string;
   content?: string;
   coverUrl?: string;
+  coverUrls?: string[];
   author?: string;
   category?: string;
   tags?: string[];

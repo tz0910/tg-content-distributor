@@ -124,6 +124,7 @@ model Article {
   excerpt        String?
   content        String?
   coverUrl       String?
+  coverUrls      Json?
   author         String?
   category       String?
   tags           Json?

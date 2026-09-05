@@ -29,7 +29,8 @@ function firstSrcsetUrl(value?: string) {
     .find(Boolean);
 }
 
-function imageFromJsonLd($: cheerio.CheerioAPI) {
+function imagesFromJsonLd($: cheerio.CheerioAPI) {
+  const images: string[] = [];
   const scripts = $('script[type="application/ld+json"]')
     .map((_, element) => $(element).text())
     .get();
@@ -41,21 +42,75 @@ function imageFromJsonLd($: cheerio.CheerioAPI) {
       for (const item of items) {
         if (!item || typeof item !== "object") continue;
         const image = (item as Record<string, unknown>).image;
-        if (typeof image === "string") return image;
-        if (Array.isArray(image) && typeof image[0] === "string") return image[0];
+        if (typeof image === "string") images.push(image);
+        if (Array.isArray(image)) images.push(...image.filter((value): value is string => typeof value === "string"));
         if (image && typeof image === "object" && typeof (image as Record<string, unknown>).url === "string") {
-          return String((image as Record<string, unknown>).url);
+          images.push(String((image as Record<string, unknown>).url));
         }
       }
     } catch {
       continue;
     }
   }
-  return undefined;
+  return images;
+}
+
+function backgroundImageUrl(value?: string) {
+  const match = value?.match(/url\(["']?([^"')]+)["']?\)/i);
+  return match?.[1];
+}
+
+function isLikelyContentImage(url: string) {
+  const lower = url.toLowerCase();
+  if (lower.startsWith("data:")) return false;
+  return !["logo", "icon", "avatar", "favicon", "placeholder", "loading", "qrcode", "wechat"].some((token) => lower.includes(token));
+}
+
+function collectImageCandidates($: cheerio.CheerioAPI, source: Source) {
+  const selectors = [
+    ".article-content img",
+    ".entry-content img",
+    ".post-content img",
+    ".content img",
+    "article img",
+    "main img",
+    ".article-content [style]",
+    ".entry-content [style]",
+    "article [style]",
+    "main [style]"
+  ];
+  const images: string[] = [];
+
+  for (const selector of selectors) {
+    $(selector).each((_, element) => {
+      const node = $(element);
+      const value =
+        node.attr("data-src") ||
+        node.attr("data-original") ||
+        node.attr("data-lazy-src") ||
+        node.attr("src") ||
+        firstSrcsetUrl(node.attr("srcset") || node.attr("data-srcset")) ||
+        backgroundImageUrl(node.attr("style"));
+      if (value) images.push(value);
+    });
+  }
+
+  images.push(...imagesFromJsonLd($));
+
+  return [...new Set(images)]
+    .map((image) => {
+      try {
+        return normalizeUrl(image, source.baseUrl);
+      } catch {
+        return undefined;
+      }
+    })
+    .filter((image): image is string => Boolean(image && isLikelyContentImage(image)))
+    .slice(0, 3);
 }
 
 export async function enrichArticleFromDetailPage(article: NormalizedArticle, source: Source) {
-  if (article.coverUrl && article.content && article.excerpt) return article;
+  if (article.coverUrl && article.coverUrls?.length && article.content && article.excerpt) return article;
 
   try {
     const { data } = await axios.get<string>(article.url, {
@@ -66,8 +121,8 @@ export async function enrichArticleFromDetailPage(article: NormalizedArticle, so
     const $ = cheerio.load(data);
     $("script,style,iframe,noscript").remove();
 
-    const cover =
-      article.coverUrl ||
+    const coverCandidates = collectImageCandidates($, source);
+    const metaCover =
       firstMeta($, [
         'meta[property="og:image"]',
         'meta[property="og:image:url"]',
@@ -83,8 +138,9 @@ export async function enrichArticleFromDetailPage(article: NormalizedArticle, so
         "article img",
         "main img",
         "img"
-      ]) ||
-      imageFromJsonLd($);
+      ]);
+    const allCovers = [...new Set([...(article.coverUrls || []), ...coverCandidates, ...(metaCover ? [normalizeUrl(metaCover, source.baseUrl)] : [])])].filter(isLikelyContentImage);
+    const cover = article.coverUrl && isLikelyContentImage(article.coverUrl) ? article.coverUrl : allCovers[0];
     const title = article.title || firstMeta($, ['meta[property="og:title"]', 'meta[name="twitter:title"]']) || $("h1").first().text().trim();
     const description =
       article.excerpt ||
@@ -96,6 +152,7 @@ export async function enrichArticleFromDetailPage(article: NormalizedArticle, so
       ...article,
       title: title || article.title,
       coverUrl: cover ? normalizeUrl(cover, source.baseUrl) : article.coverUrl,
+      coverUrls: allCovers.slice(0, 3),
       excerpt: description || excerptFrom(content, 180) || article.excerpt,
       content: content || article.content,
       contentExtraction: article.contentExtraction || (content ? "FALLBACK" : undefined)

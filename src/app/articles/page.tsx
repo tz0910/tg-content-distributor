@@ -13,6 +13,10 @@ export default async function ArticlesPage() {
     orderBy: { discoveredAt: "desc" },
     include: { source: true, tasks: { include: { channel: true } } }
   });
+  const coversFor = (coverUrls: unknown, coverUrl?: string | null) => {
+    const list = Array.isArray(coverUrls) ? coverUrls.map(String) : [];
+    return [...new Set([...list, ...(coverUrl ? [coverUrl] : [])])].slice(0, 3);
+  };
 
   return (
     <AppShell>
@@ -25,9 +29,13 @@ export default async function ArticlesPage() {
             {articles.map((article) => (
               <tr key={article.id} className="border-t border-border">
                 <td className="p-3">
-                  {article.coverUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={imageProxyPath(article.coverUrl)} alt="" className="h-14 w-20 rounded-md object-cover" />
+                  {coversFor(article.coverUrls, article.coverUrl).length ? (
+                    <div className="flex w-28 gap-1">
+                      {coversFor(article.coverUrls, article.coverUrl).map((cover) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img key={cover} src={imageProxyPath(cover)} alt="" className="h-14 w-8 rounded-md object-cover" />
+                      ))}
+                    </div>
                   ) : (
                     <div className="grid h-14 w-20 place-items-center rounded-md bg-muted text-xs text-slate-500">无封面</div>
                   )}
