@@ -1,11 +1,15 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { enrichArticleFromDetailPage } from "@/lib/crawler/detail";
+import { enrichArticleFromDetailPage, enrichArticleFromListPage } from "@/lib/crawler/detail";
 import { contentHash } from "@/lib/utils/hash";
+import type { NormalizedArticle } from "@/lib/crawler/types";
 
 async function main() {
+  const force = process.argv.includes("--force");
   const articles = await prisma.article.findMany({
-    where: { deletedAt: null, OR: [{ coverUrl: null }, { coverUrls: { equals: Prisma.JsonNull } }, { excerpt: null }, { content: null }] },
+    where: force
+      ? { deletedAt: null }
+      : { deletedAt: null, OR: [{ coverUrl: null }, { coverUrls: { equals: Prisma.JsonNull } }, { excerpt: null }, { content: null }] },
     include: { source: true },
     take: 200,
     orderBy: { discoveredAt: "desc" }
@@ -13,8 +17,7 @@ async function main() {
 
   let updated = 0;
   for (const article of articles) {
-    const enriched = await enrichArticleFromDetailPage(
-      {
+    const input: NormalizedArticle = {
         externalId: article.externalId || undefined,
         title: article.title,
         url: article.url,
@@ -29,12 +32,11 @@ async function main() {
         publishedAt: article.publishedAt || undefined,
         rawData: article.rawData || undefined,
         contentExtraction: article.contentExtraction === "SELECTOR" || article.contentExtraction === "FALLBACK" ? article.contentExtraction : undefined
-      },
-      article.source
-    );
+      };
+    const enriched = await enrichArticleFromDetailPage(await enrichArticleFromListPage(input, article.source), article.source);
     const next = {
-      coverUrl: enriched.coverUrl || article.coverUrl,
-      coverUrls: enriched.coverUrls || (Array.isArray(article.coverUrls) ? article.coverUrls.map(String) : undefined),
+      coverUrl: force ? enriched.coverUrl || article.coverUrl : enriched.coverUrl || article.coverUrl,
+      coverUrls: force ? enriched.coverUrls || (Array.isArray(article.coverUrls) ? article.coverUrls.map(String) : undefined) : enriched.coverUrls || (Array.isArray(article.coverUrls) ? article.coverUrls.map(String) : undefined),
       excerpt: article.excerpt || enriched.excerpt,
       content: article.content || enriched.content,
       contentHash: article.contentHash || contentHash(enriched.content),

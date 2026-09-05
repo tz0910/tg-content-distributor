@@ -1,5 +1,6 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
+import type { AnyNode } from "domhandler";
 import type { Source } from "@prisma/client";
 import type { NormalizedArticle } from "./types";
 import { appEnv } from "@/lib/env";
@@ -107,6 +108,67 @@ function collectImageCandidates($: cheerio.CheerioAPI, source: Source) {
     })
     .filter((image): image is string => Boolean(image && isLikelyContentImage(image)))
     .slice(0, 3);
+}
+
+function imageFromNode(node: cheerio.Cheerio<AnyNode>) {
+  return (
+    node.attr("data-src") ||
+    node.attr("data-original") ||
+    node.attr("data-lazy-src") ||
+    node.attr("src") ||
+    firstSrcsetUrl(node.attr("srcset") || node.attr("data-srcset")) ||
+    backgroundImageUrl(node.attr("style"))
+  );
+}
+
+export async function enrichArticleFromListPage(article: NormalizedArticle, source: Source) {
+  if (!source.listUrl) return article;
+
+  try {
+    const { data } = await axios.get<string>(source.listUrl, {
+      timeout: 12_000,
+      maxRedirects: 3,
+      headers: { "User-Agent": source.userAgent || appEnv.crawlerUserAgent }
+    });
+    const $ = cheerio.load(data);
+    const articleUrl = normalizeUrl(article.url, source.baseUrl).replace(/\/$/, "");
+    const covers: string[] = [];
+
+    $("a[href]").each((_, element) => {
+      const link = $(element);
+      const href = link.attr("href");
+      if (!href) return;
+      const linkedUrl = normalizeUrl(href, source.baseUrl).replace(/\/$/, "");
+      if (linkedUrl !== articleUrl) return;
+
+      const card = link.parents("article,li,.post,.item,.card,.entry,.post-item,.article-item,div").first();
+      const nodes = [...link.find("img,[style]").toArray(), ...card.find("img,[style]").toArray()];
+      for (const nodeElement of nodes) {
+        const image = imageFromNode($(nodeElement));
+        if (image) covers.push(image);
+      }
+    });
+
+    const coverUrls = [...new Set(covers)]
+      .map((image) => {
+        try {
+          return normalizeUrl(image, source.baseUrl);
+        } catch {
+          return undefined;
+        }
+      })
+      .filter((image): image is string => Boolean(image && isLikelyContentImage(image)))
+      .slice(0, 3);
+
+    if (!coverUrls.length) return article;
+    return {
+      ...article,
+      coverUrl: coverUrls[0],
+      coverUrls
+    };
+  } catch {
+    return article;
+  }
 }
 
 export async function enrichArticleFromDetailPage(article: NormalizedArticle, source: Source) {

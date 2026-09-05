@@ -9,7 +9,7 @@ import { contentHash, sha256, titleHash } from "@/lib/utils/hash";
 import { normalizeUrl } from "@/lib/utils/url";
 import { matchesRoute } from "@/lib/services/routes";
 import { enqueuePublishTask } from "@/lib/queue/queues";
-import { enrichArticleFromDetailPage } from "./detail";
+import { enrichArticleFromDetailPage, enrichArticleFromListPage } from "./detail";
 
 export function adapterFor(type: SourceType): CrawlerAdapter {
   if (type === "RSS") return new RSSAdapter();
@@ -73,7 +73,7 @@ export async function crawlSource(source: Source) {
 }
 
 export async function upsertArticle(source: Source, item: NormalizedArticle) {
-  const enriched = source.type === "WEBHOOK" ? item : await enrichArticleFromDetailPage(item, source);
+  const enriched = source.type === "WEBHOOK" ? item : await enrichArticleFromDetailPage(await enrichArticleFromListPage(item, source), source);
   const url = normalizeUrl(enriched.url, source.baseUrl);
   const canonicalUrl = enriched.canonicalUrl ? normalizeUrl(enriched.canonicalUrl, source.baseUrl) : url;
   const urlHash = sha256(canonicalUrl || url);
