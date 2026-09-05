@@ -20,11 +20,19 @@ function tagsToText(tags: unknown) {
   return list.map((tag) => hashtag(String(tag))).join(" ");
 }
 
-export function renderTemplate(body: string, article: TemplateArticle, options?: { emoji?: string }) {
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+export function renderTemplate(body: string, article: TemplateArticle, options?: { emoji?: string; format?: "text" | "html" }) {
   const title = article.tgTitle || article.title;
   const summary = article.tgSummary || article.excerpt || excerptFrom(article.content, 180);
   const tags = tagsToText(article.tgTags || article.tags || (article.category ? [article.category] : []));
-  const values: Record<string, string> = {
+  const rawValues: Record<string, string> = {
     emoji: options?.emoji || "🔥",
     title,
     summary,
@@ -36,6 +44,10 @@ export function renderTemplate(body: string, article: TemplateArticle, options?:
     publish_time: article.publishedAt ? new Date(article.publishedAt).toLocaleString("zh-CN") : "",
     author: article.author || ""
   };
+  const values =
+    options?.format === "html"
+      ? Object.fromEntries(Object.entries(rawValues).map(([key, value]) => [key, escapeHtml(value)]))
+      : rawValues;
 
   return body.replace(/\{\{(\w+)\}\}/g, (_, key: string) => values[key] ?? "").replace(/\n{3,}/g, "\n\n").trim();
 }

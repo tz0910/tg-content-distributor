@@ -77,7 +77,7 @@ export async function publishTask(taskId: string) {
     campaign: task.channel.channelCode || task.channel.username || task.channel.name
   });
   const articleForTemplate = { ...task.article, url };
-  const text = renderTemplate(task.template.body, articleForTemplate, { emoji: task.template.emoji });
+  const text = renderTemplate(task.template.body, articleForTemplate, { emoji: task.template.emoji, format: "html" });
   const service = new TelegramService(decodeStoredSecret(task.channel.bot.tokenEnc));
 
   try {

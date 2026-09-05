@@ -38,6 +38,7 @@ export class TelegramService {
     const { data } = await this.client.post<TelegramResult>("/sendMessage", {
       chat_id: chatId,
       text: fitTelegramText(text),
+      parse_mode: "HTML",
       disable_web_page_preview: false
     });
     if (!data.ok) throw new Error(data.description || "Telegram 文本发送失败");
@@ -48,7 +49,8 @@ export class TelegramService {
     const { data } = await this.client.post<TelegramResult>("/sendPhoto", {
       chat_id: chatId,
       photo,
-      caption: fitTelegramCaption(caption)
+      caption: fitTelegramCaption(caption),
+      parse_mode: "HTML"
     });
     if (!data.ok) throw new Error(data.description || "Telegram 图片发送失败");
     return data;
