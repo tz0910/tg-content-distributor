@@ -1,12 +1,14 @@
 import { notFound } from "next/navigation";
+import { existsSync } from "node:fs";
 import { CoverImage } from "@/components/cover-image";
 import { AppShell } from "@/components/shell";
 import { Badge } from "@/components/table";
 import { prisma } from "@/lib/db";
+import { isLocalCoverUrl, localCoverFilePath } from "@/lib/services/cover-store";
 import { renderTemplate } from "@/lib/services/template";
 import { imageProxyPath } from "@/lib/utils/image";
 import { appendUtm } from "@/lib/utils/url";
-import { ignoreArticle, queueArticle, updateArticleCopy } from "./actions";
+import { ignoreArticle, queueArticle, refreshArticleCover, updateArticleCopy } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +31,14 @@ export default async function ArticleDetailPage({ params }: { params: Promise<{ 
     : article.url;
   const preview = template ? renderTemplate(template.body, { ...article, url: previewUrl }, { emoji: template.emoji }) : "";
   const covers = [...new Set([...(Array.isArray(article.coverUrls) ? article.coverUrls.map(String) : []), ...(article.coverUrl ? [article.coverUrl] : [])])].slice(0, 3);
+  const primaryCover = covers[0];
+  const coverStatus = primaryCover
+    ? isLocalCoverUrl(primaryCover)
+      ? existsSync(localCoverFilePath(primaryCover))
+        ? { label: "本地封面正常", tone: "success" as const, detail: primaryCover }
+        : { label: "本地文件缺失", tone: "danger" as const, detail: primaryCover }
+      : { label: "远程封面待代理", tone: "warning" as const, detail: primaryCover }
+    : { label: "未解析到封面", tone: "danger" as const, detail: "可点击重新抓取封面" };
 
   return (
     <AppShell>
@@ -41,10 +51,27 @@ export default async function ArticleDetailPage({ params }: { params: Promise<{ 
       </div>
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
         <section className="rounded-lg border border-border bg-panel p-4">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3 rounded-md bg-muted/50 p-3">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="font-semibold">封面诊断</h3>
+                <Badge tone={coverStatus.tone}>{coverStatus.label}</Badge>
+              </div>
+              <p className="mt-2 break-all text-xs text-slate-500">{coverStatus.detail}</p>
+              <p className="mt-1 text-xs text-slate-500">当前共记录 {covers.length} 张封面，优先使用第一张发送到 Telegram。</p>
+            </div>
+            <form action={refreshArticleCover}>
+              <input type="hidden" name="id" value={article.id} />
+              <button className="rounded-md border border-border bg-panel px-3 py-2 text-sm hover:bg-muted">重新抓取封面</button>
+            </form>
+          </div>
           {covers.length ? (
             <div className="mb-4 grid grid-cols-3 gap-2">
               {covers.map((cover) => (
-                <CoverImage key={cover} src={imageProxyPath(cover)} className="h-44 w-full rounded-md object-cover" />
+                <div key={cover} className="overflow-hidden rounded-md border border-border">
+                  <CoverImage src={imageProxyPath(cover)} className="h-44 w-full object-cover" />
+                  <p className="truncate bg-muted px-2 py-1 text-xs text-slate-500">{isLocalCoverUrl(cover) ? "本地封面" : "远程封面"}</p>
+                </div>
               ))}
             </div>
           ) : null}
@@ -61,8 +88,11 @@ export default async function ArticleDetailPage({ params }: { params: Promise<{ 
             <button className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white">保存文案</button>
           </form>
           <section className="rounded-lg border border-border bg-panel p-4">
-            <h3 className="mb-3 font-semibold">Telegram Preview</h3>
-            <div className="overflow-hidden rounded-md bg-[#e7eef4] text-slate-950">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h3 className="font-semibold">Telegram 真实预览</h3>
+              <Badge tone={primaryCover ? "success" : "warning"}>{primaryCover ? "图片消息" : "纯文本消息"}</Badge>
+            </div>
+            <div className="overflow-hidden rounded-md bg-[#e7eef4] text-slate-950 shadow-sm">
               {covers[0] ? (
                 <CoverImage src={imageProxyPath(covers[0])} className="h-48 w-full object-cover" />
               ) : (
@@ -72,6 +102,10 @@ export default async function ArticleDetailPage({ params }: { params: Promise<{ 
               <a href={previewUrl} target="_blank" rel="noreferrer" className="mx-3 mb-3 block rounded-md bg-accent px-3 py-2 text-center text-sm font-medium text-white">
                 🎬 查看完整视频
               </a>
+            </div>
+            <div className="mt-3 grid gap-1 text-xs text-slate-500">
+              <span>目标频道：{previewChannel?.name || "尚未匹配频道"}</span>
+              <span>按钮链接：{previewUrl}</span>
             </div>
             <div className="mt-3 flex gap-2">
               <form action={queueArticle}><input type="hidden" name="id" value={article.id} /><button className="rounded-md bg-accent px-3 py-2 text-sm text-white">加入队列</button></form>

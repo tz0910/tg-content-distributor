@@ -4,16 +4,28 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { enqueueCrawler } from "@/lib/queue/queues";
 
+function inferSourceType(input: string, selected: string) {
+  if (selected !== "AUTO") return selected;
+  const lower = input.toLowerCase();
+  if (lower.includes("rss") || lower.includes("feed") || lower.endsWith(".xml")) return "RSS";
+  if (lower.includes("sitemap")) return "SITEMAP";
+  return "HTML";
+}
+
 export async function createSource(formData: FormData) {
+  const primaryUrl = String(formData.get("primaryUrl") || "").trim();
+  const type = inferSourceType(primaryUrl, String(formData.get("type") || "AUTO"));
+  const baseUrl = String(formData.get("baseUrl") || primaryUrl).trim();
+
   await prisma.source.create({
     data: {
       name: String(formData.get("name")),
-      type: formData.get("type") as never,
-      baseUrl: String(formData.get("baseUrl")),
-      feedUrl: String(formData.get("feedUrl") || "") || null,
-      sitemapUrl: String(formData.get("sitemapUrl") || "") || null,
-      apiUrl: String(formData.get("apiUrl") || "") || null,
-      listUrl: String(formData.get("listUrl") || "") || null,
+      type: type as never,
+      baseUrl,
+      feedUrl: type === "RSS" ? primaryUrl : String(formData.get("feedUrl") || "") || null,
+      sitemapUrl: type === "SITEMAP" ? primaryUrl : String(formData.get("sitemapUrl") || "") || null,
+      apiUrl: type === "API" ? primaryUrl : String(formData.get("apiUrl") || "") || null,
+      listUrl: type === "HTML" || type === "RSS" ? String(formData.get("listUrl") || primaryUrl) || null : String(formData.get("listUrl") || "") || null,
       interval: Math.max(1, Number(formData.get("interval") || 5)),
       enabled: formData.get("enabled") === "on"
     }

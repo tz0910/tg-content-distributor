@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   BarChart3,
   Bot,
+  ClipboardCheck,
   FileText,
   GitBranch,
   LayoutDashboard,
@@ -16,7 +17,10 @@ import {
 const groups = [
   {
     label: "总览",
-    items: [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }]
+    items: [
+      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/setup", label: "初始化向导", icon: ClipboardCheck }
+    ]
   },
   {
     label: "采集",
@@ -32,7 +36,7 @@ const groups = [
       { href: "/telegram/bots", label: "Bot", icon: Bot },
       { href: "/telegram/channels", label: "频道", icon: RadioTower },
       { href: "/templates", label: "发布模板", icon: Sparkles },
-      { href: "/routes", label: "路由规则", icon: GitBranch }
+      { href: "/routes", label: "发布规则", icon: GitBranch }
     ]
   },
   {
@@ -47,6 +51,7 @@ const groups = [
     label: "系统",
     items: [
       { href: "/settings/ai", label: "AI 配置", icon: Settings },
+      { href: "/settings/status", label: "系统自检", icon: ClipboardCheck },
       { href: "/settings/system-logs", label: "系统日志", icon: Logs }
     ]
   }

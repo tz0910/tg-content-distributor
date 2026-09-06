@@ -15,7 +15,10 @@ export default async function RoutesPage() {
 
   return (
     <AppShell>
-      <h2 className="mb-4 text-2xl font-semibold">路由规则</h2>
+      <div className="mb-4">
+        <h2 className="text-2xl font-semibold">发布规则</h2>
+        <p className="mt-1 text-sm text-slate-500">决定哪个采集源的帖子，发到哪个 Telegram 频道，并使用哪个模板。</p>
+      </div>
       <form action={createRouteRule} className="mb-6 grid gap-3 rounded-lg border border-border bg-panel p-4 md:grid-cols-4">
         <input name="name" required placeholder="规则名称" className="rounded-md border border-border px-3 py-2" />
         <select name="sourceId" className="rounded-md border border-border px-3 py-2"><option value="">全部来源</option>{sources.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
@@ -33,9 +36,9 @@ export default async function RoutesPage() {
           <option value="SUMMARY">摘要生成</option>
           <option value="FULL_COPY">完整文案</option>
         </select>
-        <button className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white">新增规则</button>
+        <button className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white">新增发布规则</button>
       </form>
-      {routes.length === 0 ? <EmptyState title="暂无路由规则。没有匹配规则时文章只会进入 READY，不会自动发布。" /> : null}
+      {routes.length === 0 ? <EmptyState title="暂无发布规则。没有匹配规则时文章只会进入 READY，不会自动发布。" /> : null}
       <div className="space-y-3">
         {routes.map((route) => (
           <div key={route.id} className="rounded-lg border border-border bg-panel p-4">

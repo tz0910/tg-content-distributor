@@ -39,6 +39,10 @@ export default async function DashboardPage() {
       <div className="mb-6">
         <h2 className="text-2xl font-semibold">TG 自动发布中心</h2>
         <p className="text-sm text-slate-500">抓帖子封面、生成文案、带完整视频入口发布到 Telegram 频道。</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link href="/setup" className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-white">初始化向导</Link>
+          <Link href="/settings/status" className="rounded-md border border-border px-3 py-2 text-sm hover:bg-muted">系统自检</Link>
+        </div>
       </div>
       <section className="mb-6 rounded-lg border border-border bg-panel p-4">
         <div className="mb-3 flex items-center justify-between gap-4">

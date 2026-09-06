@@ -83,6 +83,7 @@ export default async function QueuePage() {
               <div className="min-w-0 space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge tone={statusTone(task.status)}>{statusLabels[task.status]}</Badge>
+                  <Badge tone={covers[0] ? "success" : "warning"}>{covers[0] ? "有封面" : "无封面"}</Badge>
                   <span className="text-xs text-slate-500">{task.article.source.name}</span>
                   <span className="text-xs text-slate-500">{task.article.category || "未分类"}</span>
                 </div>
