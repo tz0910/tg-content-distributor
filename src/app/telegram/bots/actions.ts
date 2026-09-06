@@ -20,4 +20,5 @@ export async function createBot(formData: FormData) {
   });
   await bcrypt.hash(token, 10);
   revalidatePath("/telegram/bots");
+  revalidatePath("/telegram/setup");
 }

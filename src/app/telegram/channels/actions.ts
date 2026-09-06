@@ -19,4 +19,5 @@ export async function createChannel(formData: FormData) {
     }
   });
   revalidatePath("/telegram/channels");
+  revalidatePath("/telegram/setup");
 }

@@ -15,7 +15,7 @@ export default async function SourcesPage() {
   return (
     <AppShell>
       <div className="mb-4">
-        <h2 className="text-2xl font-semibold">帖子采集源</h2>
+        <h2 className="text-2xl font-semibold">1. 添加采集网站</h2>
         <p className="mt-1 text-sm text-slate-500">简单模式直接填网站分类页或 RSS 地址；系统会尽量自动识别并抓取封面。</p>
       </div>
       <form action={createSource} className="mb-6 rounded-lg border border-border bg-panel p-4">
@@ -71,7 +71,10 @@ export default async function SourcesPage() {
         </details>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <label className="flex items-center gap-2 text-sm"><input name="enabled" type="checkbox" defaultChecked /> 启用并按间隔自动采集</label>
-          <button className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white">新增采集源</button>
+          <div className="flex flex-wrap gap-2">
+            <button className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white">保存采集网站</button>
+            <a href="/telegram/setup" className="rounded-md border border-border px-4 py-2 text-sm hover:bg-muted">下一步：配置 TG 频道</a>
+          </div>
         </div>
       </form>
       {sources.length === 0 ? <EmptyState title="还没有采集源，先添加一个 RSS 或 Sitemap。" /> : null}

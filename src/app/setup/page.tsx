@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bot, CheckCircle2, FileText, GitBranch, RadioTower, Rss, Send, Sparkles } from "lucide-react";
+import { CheckCircle2, FileText, RadioTower, Rss, Send } from "lucide-react";
 import { AppShell } from "@/components/shell";
 import { Badge } from "@/components/table";
 import { prisma } from "@/lib/db";
@@ -28,22 +28,6 @@ export default async function SetupPage() {
 
   const steps: Step[] = [
     {
-      label: "连接 Bot",
-      detail: bots ? `${bots} 个 Bot 可用` : "保存 BotFather 给你的 BOT_TOKEN",
-      href: "/telegram/bots",
-      action: bots ? "查看 Bot" : "添加 Bot",
-      done: bots > 0,
-      icon: Bot
-    },
-    {
-      label: "绑定频道",
-      detail: channels ? `${channels} 个频道启用` : "把 Bot 拉进频道并设为管理员",
-      href: "/telegram/channels",
-      action: channels ? "查看频道" : "添加频道",
-      done: channels > 0,
-      icon: RadioTower
-    },
-    {
       label: "添加采集网站",
       detail: sources ? `${sources} 个采集源启用` : "简单模式直接填分类页或 RSS 地址",
       href: "/sources",
@@ -52,35 +36,27 @@ export default async function SetupPage() {
       icon: Rss
     },
     {
-      label: "准备发布模板",
-      detail: templates ? `${templates} 个模板可用` : "模板决定 TG 文案和按钮前的文字",
-      href: "/templates",
-      action: templates ? "查看模板" : "新增模板",
-      done: templates > 0,
-      icon: Sparkles
+      label: "配置 Telegram 频道",
+      detail: bots && channels ? `${bots} 个 Bot，${channels} 个频道可用` : "保存 Bot Token，并绑定要发布的频道",
+      href: "/telegram/setup",
+      action: bots && channels ? "查看 TG 配置" : "配置 TG",
+      done: bots > 0 && channels > 0,
+      icon: RadioTower
     },
     {
-      label: "配置发布规则",
-      detail: routes ? `${routes} 条规则启用` : "决定哪个来源发到哪个频道",
-      href: "/routes",
-      action: routes ? "查看规则" : "新增规则",
-      done: routes > 0,
-      icon: GitBranch
-    },
-    {
-      label: "审核内容池",
-      detail: articles ? `${articles} 篇内容已入库` : "采集成功后内容会出现在这里",
+      label: "预览发布样式",
+      detail: articles && templates ? `${articles} 篇内容可预览，${templates} 个样式可用` : "检查封面、文案和查看完整视频按钮",
       href: "/articles",
-      action: articles ? "审核内容" : "查看内容池",
-      done: articles > 0,
+      action: articles ? "打开预览" : "查看内容池",
+      done: articles > 0 && templates > 0,
       icon: FileText
     },
     {
-      label: "开始发布",
-      detail: queued ? `${queued} 条任务在队列中` : "从内容池加入队列后即可发布",
-      href: "/tasks/queue",
-      action: queued ? "查看队列" : "去加队列",
-      done: queued > 0,
+      label: "开启自动发布",
+      detail: routes ? `${routes} 条规则启用，${queued} 条任务在队列中` : "选择来源、频道和样式，让帖子自动进入队列",
+      href: "/autopublish",
+      action: routes ? "查看自动发布" : "开启规则",
+      done: routes > 0,
       icon: Send
     }
   ];
@@ -93,7 +69,7 @@ export default async function SetupPage() {
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 className="text-2xl font-semibold">初始化向导</h2>
-          <p className="mt-1 text-sm text-slate-500">按顺序完成配置，就能从网站帖子自动走到 Telegram 发布。</p>
+          <p className="mt-1 text-sm text-slate-500">后台已简化成 4 步：采集网站、配置频道、预览样式、开启自动发布。</p>
         </div>
         <Link href={next.href} className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white">
           下一步：{next.action}

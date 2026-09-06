@@ -29,4 +29,5 @@ export async function createRouteRule(formData: FormData) {
     }
   });
   revalidatePath("/routes");
+  revalidatePath("/autopublish");
 }

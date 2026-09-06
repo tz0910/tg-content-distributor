@@ -37,29 +37,27 @@ export default async function DashboardPage() {
   return (
     <AppShell>
       <div className="mb-6">
-        <h2 className="text-2xl font-semibold">TG 自动发布中心</h2>
-        <p className="text-sm text-slate-500">抓帖子封面、生成文案、带完整视频入口发布到 Telegram 频道。</p>
+        <h2 className="text-2xl font-semibold">网站帖子 → Telegram 发布</h2>
+        <p className="text-sm text-slate-500">按 4 步完成：添加采集网站、配置 TG 频道、预览发布样式、开启自动发布。</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Link href="/setup" className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-white">初始化向导</Link>
+          <Link href="/sources" className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-white">开始添加采集网站</Link>
           <Link href="/settings/status" className="rounded-md border border-border px-3 py-2 text-sm hover:bg-muted">系统自检</Link>
         </div>
       </div>
       <section className="mb-6 rounded-lg border border-border bg-panel p-4">
         <div className="mb-3 flex items-center justify-between gap-4">
           <div>
-            <h3 className="font-semibold">发布链路</h3>
-            <p className="text-sm text-slate-500">每篇帖子会按模板生成图片消息：封面 + 文案 + 可点击的查看完整视频。</p>
+            <h3 className="font-semibold">4 步发布流程</h3>
+            <p className="text-sm text-slate-500">日常只需要围绕这 4 个入口操作，高级配置已收进对应页面。</p>
           </div>
-          <Link href="/sources" className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white">添加帖子源</Link>
+          <Link href="/setup" className="rounded-md border border-border px-4 py-2 text-sm hover:bg-muted">查看配置进度</Link>
         </div>
-        <div className="grid gap-3 md:grid-cols-6">
+        <div className="grid gap-3 md:grid-cols-4">
           {[
-            { label: "Bot", value: `${bots} 个启用`, ok: bots > 0, href: "/telegram/bots" },
-            { label: "频道", value: `${channels} 个启用`, ok: channels > 0, href: "/telegram/channels" },
-            { label: "采集源", value: `${sources} 个`, ok: sources > 0, href: "/sources" },
-            { label: "模板", value: `${templates} 个`, ok: templates > 0, href: "/templates" },
-            { label: "路由", value: `${routes} 条启用`, ok: routes > 0, href: "/routes" },
-            { label: "待发布", value: `${readyArticles + waiting} 条`, ok: readyArticles + waiting > 0, href: "/tasks/queue" }
+            { label: "1. 添加采集网站", value: `${sources} 个网站`, ok: sources > 0, href: "/sources" },
+            { label: "2. 配置 TG 频道", value: `${bots} 个 Bot，${channels} 个频道`, ok: bots > 0 && channels > 0, href: "/telegram/setup" },
+            { label: "3. 预览发布样式", value: `${templates} 个样式，${readyArticles + todayArticles} 篇内容`, ok: templates > 0 && (readyArticles + todayArticles) > 0, href: "/articles" },
+            { label: "4. 开启自动发布", value: `${routes} 条规则，${waiting} 条待发`, ok: routes > 0, href: "/autopublish" }
           ].map((item) => (
             <Link key={item.label} href={item.href} className="rounded-md border border-border p-3 hover:bg-muted">
               <p className="text-xs text-slate-500">{item.label}</p>

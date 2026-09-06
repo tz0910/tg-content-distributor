@@ -75,10 +75,10 @@ export default async function ArticlesPage({
     <AppShell>
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-semibold">内容池</h2>
-          <p className="mt-1 text-sm text-slate-500">筛选帖子、检查封面、预览 TG 文案，然后加入发布队列。</p>
+          <h2 className="text-2xl font-semibold">3. 预览发布样式</h2>
+          <p className="mt-1 text-sm text-slate-500">检查封面、文案和“查看完整视频”按钮，确认后加入发布队列。</p>
         </div>
-        <Link href="/tasks/queue" className="rounded-md border border-border px-3 py-2 text-sm hover:bg-muted">查看发布队列</Link>
+        <Link href="/autopublish" className="rounded-md border border-border px-3 py-2 text-sm hover:bg-muted">下一步：开启自动发布</Link>
       </div>
 
       <form className="mb-4 grid gap-3 rounded-lg border border-border bg-panel p-4 md:grid-cols-[1fr_1fr_2fr_auto]">

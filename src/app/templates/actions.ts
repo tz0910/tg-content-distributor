@@ -16,4 +16,5 @@ export async function createTemplate(formData: FormData) {
     }
   });
   revalidatePath("/templates");
+  revalidatePath("/telegram/setup");
 }
